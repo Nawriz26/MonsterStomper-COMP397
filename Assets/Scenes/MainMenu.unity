@@ -819,6 +819,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 35007f6b16b26fc419b0703fa0eae081, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MainMenuManager
+  newGameButton: {fileID: 1050201127}
+  loadGameButton: {fileID: 236825908}
+  optionsButton: {fileID: 1681868437}
+  exitButton: {fileID: 723114452}
+  loadGamePanel: {fileID: 0}
 --- !u!4 &579215698
 Transform:
   m_ObjectHideFlags: 0
