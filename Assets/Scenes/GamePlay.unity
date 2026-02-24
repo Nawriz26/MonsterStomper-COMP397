@@ -1942,11 +1942,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AudioManager
   musicSource: {fileID: 0}
   sfxSource: {fileID: 0}
-  mainMenuMusic: {fileID: 0}
+  mainMenuMusic: {fileID: 8300000, guid: 5ddb12fc16d146c4cbe205aaf15b49ff, type: 3}
   gameplayMusic: {fileID: 0}
   gameOverMusic: {fileID: 0}
   optionsMusic: {fileID: 0}
-  buttonClickSFX: {fileID: 0}
+  buttonClickSFX: {fileID: 8300000, guid: dded5064ead15594c9e6bc25f50ad661, type: 3}
   buttonHoverSFX: {fileID: 0}
   shootSFX: {fileID: 0}
   enemyHitSFX: {fileID: 0}
