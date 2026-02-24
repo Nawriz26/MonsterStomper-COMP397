@@ -13,13 +13,12 @@ public class CameraController : MonoBehaviour
 
     [Header("Mouse Look")]
     [SerializeField] private bool enableMouseLook = true;
-    [SerializeField] private float mouseSensitivity = 2f;
+    [SerializeField] private float mouseSensitivity = 0.1f;
     [SerializeField] private float minVerticalAngle = -30f;
     [SerializeField] private float maxVerticalAngle = 60f;
 
     private float currentX = 0f;
     private float currentY = 20f;
-    private Vector2 lookInput;
 
     void Start()
     {
@@ -50,8 +49,13 @@ public class CameraController : MonoBehaviour
 
     private void HandleMouseLook()
     {
-        currentX += lookInput.x * mouseSensitivity;
-        currentY -= lookInput.y * mouseSensitivity;
+        var mouse = Mouse.current;
+        if (mouse == null) return;
+
+        Vector2 mouseDelta = mouse.delta.ReadValue();
+
+        currentX += mouseDelta.x * mouseSensitivity;
+        currentY -= mouseDelta.y * mouseSensitivity;
         currentY = Mathf.Clamp(currentY, minVerticalAngle, maxVerticalAngle);
     }
 
@@ -63,11 +67,6 @@ public class CameraController : MonoBehaviour
 
         transform.position = Vector3.Lerp(transform.position, desiredPosition, followSpeed * Time.deltaTime);
         transform.LookAt(target.position + Vector3.up * height * 0.5f);
-    }
-
-    public void OnLook(InputAction.CallbackContext context)
-    {
-        lookInput = context.ReadValue<Vector2>();
     }
 
     public void SetTarget(Transform newTarget)

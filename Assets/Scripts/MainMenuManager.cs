@@ -74,6 +74,11 @@ public class MainMenuManager : MonoBehaviour
 
     public void ExitGame()
     {
+        #if UNITY_EDITOR
+        Debug.Log("Exit Game clicked (only works in builds, not in editor)");
+        UnityEditor.EditorApplication.isPlaying = false;
+        #else
         Application.Quit();
+        #endif
     }
 }

@@ -26,12 +26,18 @@ public class PlayerController : MonoBehaviour
 
     private PlayerHealth playerHealth;
     private PlayerWeapon playerWeapon;
+    private PlayerInput playerInput;
+    private PauseMenuController pauseMenuController;
 
     void Awake()
     {
         controller = GetComponent<CharacterController>();
         playerHealth = GetComponent<PlayerHealth>();
         playerWeapon = GetComponent<PlayerWeapon>();
+        playerInput = GetComponent<PlayerInput>();
+        
+        // Find pause menu controller (works even if inactive)
+        pauseMenuController = FindObjectOfType<PauseMenuController>(true);
     }
 
     void Start()
@@ -42,6 +48,81 @@ public class PlayerController : MonoBehaviour
             groundCheckObj.transform.SetParent(transform);
             groundCheckObj.transform.localPosition = new Vector3(0, -1f, 0);
             groundCheck = groundCheckObj.transform;
+        }
+
+        SetupInputCallbacks();
+    }
+
+    private void SetupInputCallbacks()
+    {
+        if (playerInput == null) return;
+
+        var gameplayMap = playerInput.actions.FindActionMap("Gameplay");
+        if (gameplayMap == null) return;
+
+        var moveAction = gameplayMap.FindAction("Move");
+        if (moveAction != null)
+        {
+            moveAction.performed += OnMove;
+            moveAction.canceled += OnMove;
+        }
+
+        var jumpAction = gameplayMap.FindAction("Jump");
+        if (jumpAction != null)
+        {
+            jumpAction.performed += OnJump;
+        }
+
+        var sprintAction = gameplayMap.FindAction("Sprint");
+        if (sprintAction != null)
+        {
+            sprintAction.performed += ctx => isSprinting = true;
+            sprintAction.canceled += ctx => isSprinting = false;
+        }
+
+        var fireAction = gameplayMap.FindAction("Fire");
+        if (fireAction != null)
+        {
+            fireAction.performed += OnFire;
+        }
+
+        var pauseAction = gameplayMap.FindAction("Pause");
+        if (pauseAction != null)
+        {
+            pauseAction.performed += OnPause;
+        }
+    }
+
+    void OnDestroy()
+    {
+        if (playerInput == null) return;
+
+        var gameplayMap = playerInput.actions.FindActionMap("Gameplay");
+        if (gameplayMap == null) return;
+
+        var moveAction = gameplayMap.FindAction("Move");
+        if (moveAction != null)
+        {
+            moveAction.performed -= OnMove;
+            moveAction.canceled -= OnMove;
+        }
+
+        var jumpAction = gameplayMap.FindAction("Jump");
+        if (jumpAction != null)
+        {
+            jumpAction.performed -= OnJump;
+        }
+
+        var fireAction = gameplayMap.FindAction("Fire");
+        if (fireAction != null)
+        {
+            fireAction.performed -= OnFire;
+        }
+
+        var pauseAction = gameplayMap.FindAction("Pause");
+        if (pauseAction != null)
+        {
+            pauseAction.performed -= OnPause;
         }
     }
 
@@ -133,17 +214,19 @@ public class PlayerController : MonoBehaviour
     {
         if (context.performed)
         {
-            if (GameManager.Instance != null)
+            // If not cached yet, try to find it now
+            if (pauseMenuController == null)
             {
-                GameObject pauseMenu = GameObject.Find("PauseMenu");
-                if (pauseMenu != null)
-                {
-                    PauseMenuController pauseController = pauseMenu.GetComponent<PauseMenuController>();
-                    if (pauseController != null)
-                    {
-                        pauseController.TogglePause();
-                    }
-                }
+                pauseMenuController = FindObjectOfType<PauseMenuController>(true);
+            }
+
+            if (pauseMenuController != null)
+            {
+                pauseMenuController.TogglePause();
+            }
+            else
+            {
+                Debug.LogWarning("PauseMenuController not found! Make sure there's a GameObject with PauseMenuController in the scene.");
             }
         }
     }

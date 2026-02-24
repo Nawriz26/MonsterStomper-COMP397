@@ -16,12 +16,19 @@ public class OptionsManager : MonoBehaviour
     void Start()
     {
         LoadSettings();
+        AddListeners();
+    }
 
-        // Add listeners
-        masterVolumeSlider.onValueChanged.AddListener(SetMasterVolume);
-        musicVolumeSlider.onValueChanged.AddListener(SetMusicVolume);
-        sfxVolumeSlider.onValueChanged.AddListener(SetSFXVolume);
-        qualityDropdown.onValueChanged.AddListener(SetQuality);
+    private void AddListeners()
+    {
+        if (masterVolumeSlider != null)
+            masterVolumeSlider.onValueChanged.AddListener(SetMasterVolume);
+        if (musicVolumeSlider != null)
+            musicVolumeSlider.onValueChanged.AddListener(SetMusicVolume);
+        if (sfxVolumeSlider != null)
+            sfxVolumeSlider.onValueChanged.AddListener(SetSFXVolume);
+        if (qualityDropdown != null)
+            qualityDropdown.onValueChanged.AddListener(SetQuality);
     }
 
     // ---------------- AUDIO ----------------
@@ -59,13 +66,23 @@ public class OptionsManager : MonoBehaviour
         float sfx = PlayerPrefs.GetFloat("SFXVolume", 1f);
         int quality = PlayerPrefs.GetInt("QualityLevel", QualitySettings.GetQualityLevel());
 
-        masterVolumeSlider.value = master;
-        musicVolumeSlider.value = music;
-        sfxVolumeSlider.value = sfx;
-        qualityDropdown.value = quality;
+        if (masterVolumeSlider != null)
+            masterVolumeSlider.value = master;
+        if (musicVolumeSlider != null)
+            musicVolumeSlider.value = music;
+        if (sfxVolumeSlider != null)
+            sfxVolumeSlider.value = sfx;
+        if (qualityDropdown != null)
+            qualityDropdown.value = quality;
 
         AudioListener.volume = master;
         QualitySettings.SetQualityLevel(quality);
+
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.SetMusicVolume(music);
+            AudioManager.Instance.SetSFXVolume(sfx);
+        }
     }
 
     // ---------------- BACK BUTTON ----------------

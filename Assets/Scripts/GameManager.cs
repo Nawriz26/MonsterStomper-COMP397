@@ -26,9 +26,11 @@ public class GameManager : MonoBehaviour
         {
             Instance = this;
             DontDestroyOnLoad(gameObject);
+            Debug.Log("GameManager: Instance created");
         }
         else
         {
+            Debug.Log("GameManager: Duplicate instance destroyed");
             Destroy(gameObject);
         }
     }
@@ -43,6 +45,7 @@ public class GameManager : MonoBehaviour
 
     public void SetGameState(GameState newState)
     {
+        Debug.Log($"GameManager: State changed from {currentState} to {newState}");
         currentState = newState;
         GameStateChanged?.Invoke(newState);
     }
@@ -66,6 +69,7 @@ public class GameManager : MonoBehaviour
 
     public void StartNewGame()
     {
+        Debug.Log("GameManager: StartNewGame() called - Resetting stats");
         currentScore = 0;
         enemiesDefeated = 0;
         coinsCollected = 0;
