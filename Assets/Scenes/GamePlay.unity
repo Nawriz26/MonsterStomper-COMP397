@@ -641,14 +641,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 69ac656d92e89114983f3ed66e513a17, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PauseMenuController
-  pauseMenuPanel: {fileID: 0}
+  pauseMenuPanel: {fileID: 601925036}
   savePanel: {fileID: 0}
   loadPanel: {fileID: 0}
-  resumeButton: {fileID: 0}
-  saveButton: {fileID: 0}
-  loadButton: {fileID: 0}
-  optionsButton: {fileID: 0}
-  mainMenuButton: {fileID: 0}
+  resumeButton: {fileID: 1664688519}
+  saveButton: {fileID: 2117970266}
+  loadButton: {fileID: 679545779}
+  optionsButton: {fileID: 1175218431}
+  mainMenuButton: {fileID: 1483117711}
 --- !u!114 &601925039
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -662,7 +662,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 0.392}
+  m_Color: {r: 0, g: 0, b: 0, a: 0.392}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -3541,7 +3541,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1664688520}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 0}
+        m_TargetAssemblyTypeName: 
+        m_MethodName: 
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: 
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &1664688520
 MonoBehaviour:
   m_ObjectHideFlags: 0
