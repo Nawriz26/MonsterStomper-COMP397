@@ -8,7 +8,6 @@ public class EnemyController : MonoBehaviour
     [SerializeField] private float detectionRadius = 15f;
     [SerializeField] private float attackRange = 2f;
     [SerializeField] private float fieldOfView = 120f;
-    [SerializeField] private LayerMask detectionLayers;
     [SerializeField] private LayerMask obstacleLayers;
 
     [Header("Combat Settings")]
@@ -24,6 +23,7 @@ public class EnemyController : MonoBehaviour
     private NavMeshAgent agent;
     private Transform player;
     private EnemyHealth enemyHealth;
+
     private EnemyState currentState = EnemyState.Patrol;
 
     private int currentPatrolIndex = 0;
@@ -39,10 +39,9 @@ public class EnemyController : MonoBehaviour
     void Start()
     {
         GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
+
         if (playerObj != null)
-        {
             player = playerObj.transform;
-        }
 
         if (patrolPoints.Length > 0)
         {
@@ -63,9 +62,11 @@ public class EnemyController : MonoBehaviour
             case EnemyState.Patrol:
                 Patrol();
                 break;
+
             case EnemyState.Chase:
                 Chase();
                 break;
+
             case EnemyState.Attack:
                 Attack();
                 break;
@@ -76,51 +77,44 @@ public class EnemyController : MonoBehaviour
     {
         if (player == null) return;
 
-        float distanceToPlayer = Vector3.Distance(transform.position, player.position);
+        float distance = Vector3.Distance(transform.position, player.position);
 
-        if (distanceToPlayer <= detectionRadius)
+        if (distance <= detectionRadius)
         {
-            Vector3 directionToPlayer = (player.position - transform.position).normalized;
-            float angle = Vector3.Angle(transform.forward, directionToPlayer);
+            Vector3 dir = (player.position - transform.position).normalized;
+            float angle = Vector3.Angle(transform.forward, dir);
 
-            if (angle <= fieldOfView / 2f)
+            if (angle <= fieldOfView * 0.5f)
             {
                 if (HasLineOfSight(player.position))
                 {
                     playerDetected = true;
 
-                    if (distanceToPlayer <= attackRange)
-                    {
+                    if (distance <= attackRange)
                         currentState = EnemyState.Attack;
-                    }
                     else
-                    {
                         currentState = EnemyState.Chase;
-                    }
+
                     return;
                 }
             }
         }
 
-        if (playerDetected && distanceToPlayer > detectionRadius * 1.5f)
+        if (playerDetected && distance > detectionRadius * 1.5f)
         {
             playerDetected = false;
             currentState = EnemyState.Patrol;
+            GoToNextPatrolPoint();
         }
     }
 
     private bool HasLineOfSight(Vector3 targetPosition)
     {
-        Vector3 directionToTarget = targetPosition - transform.position;
-        float distanceToTarget = directionToTarget.magnitude;
+        Vector3 direction = targetPosition - transform.position;
+        Ray ray = new Ray(transform.position + Vector3.up, direction.normalized);
 
-        Ray ray = new Ray(transform.position + Vector3.up, directionToTarget.normalized);
-        RaycastHit hit;
-
-        if (Physics.Raycast(ray, out hit, distanceToTarget, obstacleLayers))
-        {
+        if (Physics.Raycast(ray, direction.magnitude, obstacleLayers))
             return false;
-        }
 
         return true;
     }
@@ -141,7 +135,7 @@ public class EnemyController : MonoBehaviour
     {
         if (patrolPoints.Length == 0) return;
 
-        agent.destination = patrolPoints[currentPatrolIndex].position;
+        agent.SetDestination(patrolPoints[currentPatrolIndex].position);
         currentPatrolIndex = (currentPatrolIndex + 1) % patrolPoints.Length;
     }
 
@@ -150,29 +144,32 @@ public class EnemyController : MonoBehaviour
         if (player == null) return;
 
         agent.speed = chaseSpeed;
+        agent.isStopped = false;
+
         agent.SetDestination(player.position);
 
-        float distanceToPlayer = Vector3.Distance(transform.position, player.position);
-        if (distanceToPlayer <= attackRange)
-        {
+        float distance = Vector3.Distance(transform.position, player.position);
+
+        if (distance <= attackRange)
             currentState = EnemyState.Attack;
-        }
     }
 
     private void Attack()
     {
         if (player == null) return;
 
-        agent.SetDestination(transform.position);
+        agent.isStopped = true;
 
-        Vector3 directionToPlayer = (player.position - transform.position).normalized;
-        Quaternion lookRotation = Quaternion.LookRotation(new Vector3(directionToPlayer.x, 0, directionToPlayer.z));
+        Vector3 dir = (player.position - transform.position).normalized;
+        Quaternion lookRotation = Quaternion.LookRotation(new Vector3(dir.x, 0, dir.z));
         transform.rotation = Quaternion.Slerp(transform.rotation, lookRotation, Time.deltaTime * 5f);
 
-        float distanceToPlayer = Vector3.Distance(transform.position, player.position);
-        if (distanceToPlayer > attackRange)
+        float distance = Vector3.Distance(transform.position, player.position);
+
+        if (distance > attackRange)
         {
             currentState = EnemyState.Chase;
+            agent.isStopped = false;
             return;
         }
 
@@ -187,16 +184,13 @@ public class EnemyController : MonoBehaviour
     {
         if (player == null) return;
 
-        PlayerHealth playerHealth = player.GetComponent<PlayerHealth>();
-        if (playerHealth != null)
-        {
-            playerHealth.TakeDamage(attackDamage);
-        }
+        PlayerHealth health = player.GetComponent<PlayerHealth>();
+
+        if (health != null)
+            health.TakeDamage(attackDamage);
 
         if (AudioManager.Instance != null)
-        {
             AudioManager.Instance.PlayEnemyHit();
-        }
     }
 
     void OnDrawGizmosSelected()
