@@ -27,9 +27,16 @@ public class PauseMenuController : MonoBehaviour
         if (savePanel != null) savePanel.SetActive(false);
         if (loadPanel != null) loadPanel.SetActive(false);
 
-        saveManager = FindObjectOfType<SaveManager>(true);
-
+        ResolveSaveManager();
         AddButtonListeners();
+    }
+
+    private void ResolveSaveManager()
+    {
+        if (saveManager != null) return;
+        saveManager = SaveManager.Instance;
+        if (saveManager != null)
+            saveManager.OnLoadSuccess.AddListener(OnLoadSuccess);
     }
 
     private void AddButtonListeners()
@@ -69,10 +76,7 @@ public class PauseMenuController : MonoBehaviour
     public void SaveGame()
     {
         if (AudioManager.Instance != null) AudioManager.Instance.PlayButtonClick();
-
-        if (saveManager == null)
-            saveManager = FindObjectOfType<SaveManager>(true);
-
+        ResolveSaveManager();
         if (saveManager != null)
             saveManager.SaveGame();
         else
@@ -81,14 +85,28 @@ public class PauseMenuController : MonoBehaviour
 
     public void OpenLoadPanel()
     {
-        if (loadPanel != null) loadPanel.SetActive(true);
         if (AudioManager.Instance != null) AudioManager.Instance.PlayButtonClick();
+        ResolveSaveManager();
+        if (saveManager != null)
+            saveManager.OpenLoadPanel();
+        else if (loadPanel != null)
+            loadPanel.SetActive(true);
     }
 
     public void CloseLoadPanel()
     {
-        if (loadPanel != null) loadPanel.SetActive(false);
         if (AudioManager.Instance != null) AudioManager.Instance.PlayButtonClick();
+        ResolveSaveManager();
+        if (saveManager != null)
+            saveManager.CloseLoadPanel();
+        else if (loadPanel != null)
+            loadPanel.SetActive(false);
+    }
+
+    /// <summary>Called by SaveManager.OnLoadSuccess — closes all menus and resumes.</summary>
+    private void OnLoadSuccess()
+    {
+        ResumeGame();
     }
 
     public void OpenOptions()

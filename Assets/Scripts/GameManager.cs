@@ -67,6 +67,26 @@ public class GameManager : MonoBehaviour
         AddScore(100);
     }
 
+    /// <summary>
+    /// When true, SaveManager will auto-restore the last save as soon as GamePlay loads.
+    /// Set this before loading the GamePlay scene from the Main Menu.
+    /// </summary>
+    public bool PendingLoad { get; private set; } = false;
+
+    /// <summary>Signals that the next GamePlay session should restore from save.</summary>
+    public void RequestLoadGame()
+    {
+        PendingLoad = true;
+        SetGameState(GameState.Playing);
+        Debug.Log("GameManager: PendingLoad set — save will be restored on GamePlay load.");
+    }
+
+    /// <summary>Clears the pending load flag after SaveManager has consumed it.</summary>
+    public void ClearPendingLoad()
+    {
+        PendingLoad = false;
+    }
+
     public void StartNewGame()
     {
         Debug.Log("GameManager: StartNewGame() called - Resetting stats");
@@ -75,6 +95,7 @@ public class GameManager : MonoBehaviour
         coinsCollected = 0;
         gameTime = 0f;
         isPaused = false;
+        PendingLoad = false;
         SetGameState(GameState.Playing);
     }
 
