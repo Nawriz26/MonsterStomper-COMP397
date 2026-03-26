@@ -25,7 +25,10 @@ public class SceneController : MonoBehaviour
                 GameManager.Instance.SetGameState(GameState.MainMenu);
                 break;
             case "GamePlay":
-                GameManager.Instance.StartNewGame();
+                if (!GameManager.Instance.PendingLoad)
+                {
+                    GameManager.Instance.StartNewGame();
+                }
                 GameManager.Instance.SetGameState(GameState.Playing);
                 break;
             case "GameOver":

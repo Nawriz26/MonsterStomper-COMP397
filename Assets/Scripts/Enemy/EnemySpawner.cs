@@ -9,6 +9,7 @@ using UnityEngine;
 /// </summary>
 public class EnemySpawner : MonoBehaviour
 {
+<<<<<<< HEAD:Assets/Scripts/EnemySpawner.cs
     [Header("Factory (Factory Method Pattern)")]
     [Tooltip("Assign a GameObject that has an EnemyFactory component.")]
     [SerializeField] private EnemyFactory enemyFactory;
@@ -17,6 +18,10 @@ public class EnemySpawner : MonoBehaviour
     [SerializeField] private GameObject enemyPrefab;
 
     [Header("Spawn Settings")]
+=======
+    [Header("Spawn Settings")]
+    [SerializeField] private EnemyFactory enemyFactory;
+>>>>>>> 0b22625333772ad7f5af92c3e1801963ae9534ab:Assets/Scripts/Enemy/EnemySpawner.cs
     [SerializeField] private Transform[] spawnPoints;
     [SerializeField] private int maxEnemies = 10;
     [SerializeField] private float spawnInterval = 5f;
@@ -87,6 +92,7 @@ public class EnemySpawner : MonoBehaviour
     /// <summary>Spawns one enemy via the factory, or falls back to direct Instantiate.</summary>
     private void SpawnEnemy()
     {
+<<<<<<< HEAD:Assets/Scripts/EnemySpawner.cs
         if (spawnPoints.Length == 0)
         {
             Debug.LogWarning("EnemySpawner: no spawn points assigned.");
@@ -112,6 +118,13 @@ public class EnemySpawner : MonoBehaviour
 
         if (enemy != null)
             activeEnemies.Add(enemy);
+=======
+        if (enemyFactory == null || spawnPoints.Length == 0) return;
+
+        Transform spawnPoint = spawnPoints[Random.Range(0, spawnPoints.Length)];
+        GameObject enemy = enemyFactory.CreateEnemy(spawnPoint.position, spawnPoint.rotation);
+        activeEnemies.Add(enemy);
+>>>>>>> 0b22625333772ad7f5af92c3e1801963ae9534ab:Assets/Scripts/Enemy/EnemySpawner.cs
     }
 
     public int GetActiveEnemyCount() => activeEnemies.Count;
