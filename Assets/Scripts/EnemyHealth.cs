@@ -62,4 +62,11 @@ public class EnemyHealth : MonoBehaviour
     {
         return maxHealth;
     }
+
+    /// <summary>Called by EnemyFactory to override the default max health before Start() fires.</summary>
+    public void SetMaxHealth(int newMaxHealth)
+    {
+        maxHealth = newMaxHealth;
+        currentHealth = maxHealth;
+    }
 }

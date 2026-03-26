@@ -20,6 +20,10 @@ public class EnemyController : MonoBehaviour
     [SerializeField] private Transform[] patrolPoints;
     [SerializeField] private float waypointReachDistance = 1f;
 
+    [Header("Wander Settings (used when no patrol points assigned)")]
+    [SerializeField] private float wanderRadius = 12f;
+    [SerializeField] private float wanderInterval = 3f;
+
     private NavMeshAgent agent;
     private Transform player;
     private EnemyHealth enemyHealth;
@@ -28,6 +32,7 @@ public class EnemyController : MonoBehaviour
 
     private int currentPatrolIndex = 0;
     private float nextAttackTime = 0f;
+    private float nextWanderTime = 0f;
     private bool playerDetected = false;
 
     void Awake()
@@ -39,15 +44,15 @@ public class EnemyController : MonoBehaviour
     void Start()
     {
         GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
-
         if (playerObj != null)
             player = playerObj.transform;
 
+        agent.speed = patrolSpeed;
+
         if (patrolPoints.Length > 0)
-        {
-            agent.speed = patrolSpeed;
             GoToNextPatrolPoint();
-        }
+        else
+            PickWanderDestination(); // start wandering immediately
     }
 
     void Update()
@@ -59,17 +64,9 @@ public class EnemyController : MonoBehaviour
 
         switch (currentState)
         {
-            case EnemyState.Patrol:
-                Patrol();
-                break;
-
-            case EnemyState.Chase:
-                Chase();
-                break;
-
-            case EnemyState.Attack:
-                Attack();
-                break;
+            case EnemyState.Patrol: Patrol();  break;
+            case EnemyState.Chase:  Chase();   break;
+            case EnemyState.Attack: Attack();  break;
         }
     }
 
@@ -84,19 +81,11 @@ public class EnemyController : MonoBehaviour
             Vector3 dir = (player.position - transform.position).normalized;
             float angle = Vector3.Angle(transform.forward, dir);
 
-            if (angle <= fieldOfView * 0.5f)
+            if (angle <= fieldOfView * 0.5f && HasLineOfSight(player.position))
             {
-                if (HasLineOfSight(player.position))
-                {
-                    playerDetected = true;
-
-                    if (distance <= attackRange)
-                        currentState = EnemyState.Attack;
-                    else
-                        currentState = EnemyState.Chase;
-
-                    return;
-                }
+                playerDetected = true;
+                currentState = distance <= attackRange ? EnemyState.Attack : EnemyState.Chase;
+                return;
             }
         }
 
@@ -104,37 +93,65 @@ public class EnemyController : MonoBehaviour
         {
             playerDetected = false;
             currentState = EnemyState.Patrol;
-            GoToNextPatrolPoint();
+
+            if (patrolPoints.Length > 0)
+                GoToNextPatrolPoint();
+            else
+                PickWanderDestination();
         }
     }
 
     private bool HasLineOfSight(Vector3 targetPosition)
     {
+        // If obstacleLayers is Nothing, skip the raycast — treat as always visible.
+        if (obstacleLayers == 0) return true;
+
         Vector3 direction = targetPosition - transform.position;
         Ray ray = new Ray(transform.position + Vector3.up, direction.normalized);
-
-        if (Physics.Raycast(ray, direction.magnitude, obstacleLayers))
-            return false;
-
-        return true;
+        return !Physics.Raycast(ray, direction.magnitude, obstacleLayers);
     }
 
     private void Patrol()
     {
-        if (patrolPoints.Length == 0) return;
+        if (patrolPoints.Length > 0)
+        {
+            agent.speed = patrolSpeed;
+            if (!agent.pathPending && agent.remainingDistance < waypointReachDistance)
+                GoToNextPatrolPoint();
+        }
+        else
+        {
+            Wander();
+        }
+    }
 
+    private void Wander()
+    {
         agent.speed = patrolSpeed;
 
-        if (!agent.pathPending && agent.remainingDistance < waypointReachDistance)
-        {
-            GoToNextPatrolPoint();
-        }
+        // Pick a new wander destination when the timer fires or the agent has arrived
+        bool arrived = !agent.pathPending && agent.remainingDistance < waypointReachDistance;
+        bool timerElapsed = Time.time >= nextWanderTime;
+
+        if (arrived || timerElapsed)
+            PickWanderDestination();
+    }
+
+    private void PickWanderDestination()
+    {
+        nextWanderTime = Time.time + wanderInterval;
+
+        // Sample a random point on the NavMesh within wanderRadius
+        Vector3 randomDirection = Random.insideUnitSphere * wanderRadius;
+        randomDirection += transform.position;
+
+        if (NavMesh.SamplePosition(randomDirection, out NavMeshHit hit, wanderRadius, NavMesh.AllAreas))
+            agent.SetDestination(hit.position);
     }
 
     private void GoToNextPatrolPoint()
     {
         if (patrolPoints.Length == 0) return;
-
         agent.SetDestination(patrolPoints[currentPatrolIndex].position);
         currentPatrolIndex = (currentPatrolIndex + 1) % patrolPoints.Length;
     }
@@ -145,12 +162,9 @@ public class EnemyController : MonoBehaviour
 
         agent.speed = chaseSpeed;
         agent.isStopped = false;
-
         agent.SetDestination(player.position);
 
-        float distance = Vector3.Distance(transform.position, player.position);
-
-        if (distance <= attackRange)
+        if (Vector3.Distance(transform.position, player.position) <= attackRange)
             currentState = EnemyState.Attack;
     }
 
@@ -161,12 +175,12 @@ public class EnemyController : MonoBehaviour
         agent.isStopped = true;
 
         Vector3 dir = (player.position - transform.position).normalized;
-        Quaternion lookRotation = Quaternion.LookRotation(new Vector3(dir.x, 0, dir.z));
-        transform.rotation = Quaternion.Slerp(transform.rotation, lookRotation, Time.deltaTime * 5f);
+        transform.rotation = Quaternion.Slerp(
+            transform.rotation,
+            Quaternion.LookRotation(new Vector3(dir.x, 0, dir.z)),
+            Time.deltaTime * 5f);
 
-        float distance = Vector3.Distance(transform.position, player.position);
-
-        if (distance > attackRange)
+        if (Vector3.Distance(transform.position, player.position) > attackRange)
         {
             currentState = EnemyState.Chase;
             agent.isStopped = false;
@@ -185,12 +199,24 @@ public class EnemyController : MonoBehaviour
         if (player == null) return;
 
         PlayerHealth health = player.GetComponent<PlayerHealth>();
-
         if (health != null)
             health.TakeDamage(attackDamage);
 
         if (AudioManager.Instance != null)
             AudioManager.Instance.PlayEnemyHit();
+    }
+
+    /// <summary>Called by EnemyFactory to override inspector defaults with config values.</summary>
+    public void Configure(float moveSpd, float detectRadius, float fov,
+                          float atkRange, float atkDamage, float atkInterval)
+    {
+        patrolSpeed     = moveSpd * 0.65f;
+        chaseSpeed      = moveSpd;
+        detectionRadius = detectRadius;
+        fieldOfView     = fov;
+        attackRange     = atkRange;
+        attackDamage    = Mathf.RoundToInt(atkDamage);
+        attackCooldown  = atkInterval;
     }
 
     void OnDrawGizmosSelected()
@@ -200,6 +226,9 @@ public class EnemyController : MonoBehaviour
 
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, attackRange);
+
+        Gizmos.color = Color.cyan;
+        Gizmos.DrawWireSphere(transform.position, wanderRadius);
 
         if (player != null && playerDetected)
         {

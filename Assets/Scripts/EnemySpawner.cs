@@ -1,10 +1,22 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+/// <summary>
+/// Spawns enemies using EnemyFactory (Factory Method pattern).
+/// Supports continuous and wave-based modes.
+/// Assign an EnemyFactory component to the factory field; the legacy prefab field
+/// remains as a fallback so existing scenes keep working without reassignment.
+/// </summary>
 public class EnemySpawner : MonoBehaviour
 {
-    [Header("Spawn Settings")]
+    [Header("Factory (Factory Method Pattern)")]
+    [Tooltip("Assign a GameObject that has an EnemyFactory component.")]
+    [SerializeField] private EnemyFactory enemyFactory;
+
+    [Header("Fallback — Legacy Direct Spawn (used only if no factory assigned)")]
     [SerializeField] private GameObject enemyPrefab;
+
+    [Header("Spawn Settings")]
     [SerializeField] private Transform[] spawnPoints;
     [SerializeField] private int maxEnemies = 10;
     [SerializeField] private float spawnInterval = 5f;
@@ -23,13 +35,9 @@ public class EnemySpawner : MonoBehaviour
     void Start()
     {
         if (spawnOnStart && !useWaves)
-        {
             nextSpawnTime = Time.time + spawnInterval;
-        }
         else if (useWaves)
-        {
             StartWave();
-        }
     }
 
     void Update()
@@ -37,13 +45,9 @@ public class EnemySpawner : MonoBehaviour
         activeEnemies.RemoveAll(enemy => enemy == null);
 
         if (useWaves)
-        {
             UpdateWaveSpawning();
-        }
         else
-        {
             UpdateContinuousSpawning();
-        }
     }
 
     private void UpdateContinuousSpawning()
@@ -77,25 +81,39 @@ public class EnemySpawner : MonoBehaviour
         currentWave++;
         enemiesSpawnedThisWave = 0;
         nextSpawnTime = Time.time;
-        Debug.Log($"Wave {currentWave} started!");
+        Debug.Log($"EnemySpawner: Wave {currentWave} started.");
     }
 
+    /// <summary>Spawns one enemy via the factory, or falls back to direct Instantiate.</summary>
     private void SpawnEnemy()
     {
-        if (enemyPrefab == null || spawnPoints.Length == 0) return;
+        if (spawnPoints.Length == 0)
+        {
+            Debug.LogWarning("EnemySpawner: no spawn points assigned.");
+            return;
+        }
 
         Transform spawnPoint = spawnPoints[Random.Range(0, spawnPoints.Length)];
-        GameObject enemy = Instantiate(enemyPrefab, spawnPoint.position, spawnPoint.rotation);
-        activeEnemies.Add(enemy);
+        GameObject enemy = null;
+
+        if (enemyFactory != null)
+        {
+            enemy = enemyFactory.Create(spawnPoint.position, spawnPoint.rotation);
+        }
+        else if (enemyPrefab != null)
+        {
+            enemy = Instantiate(enemyPrefab, spawnPoint.position, spawnPoint.rotation);
+        }
+        else
+        {
+            Debug.LogError("EnemySpawner: assign either an EnemyFactory or a fallback enemyPrefab.");
+            return;
+        }
+
+        if (enemy != null)
+            activeEnemies.Add(enemy);
     }
 
-    public int GetActiveEnemyCount()
-    {
-        return activeEnemies.Count;
-    }
-
-    public int GetCurrentWave()
-    {
-        return currentWave;
-    }
+    public int GetActiveEnemyCount() => activeEnemies.Count;
+    public int GetCurrentWave() => currentWave;
 }

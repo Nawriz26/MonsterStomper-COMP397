@@ -8,10 +8,13 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float moveSpeed = 5f;
     [SerializeField] private float sprintSpeed = 8f;
     [SerializeField] private float rotationSpeed = 10f;
-    [SerializeField] private float jumpForce = 5f;
+    [SerializeField] private float jumpForce = 12f;
 
-    [Header("Ground Check")]
-    [SerializeField] private float gravity = -9.81f;
+    [Header("Gravity Settings")]
+    [SerializeField] private float gravity = -20f;
+    [Tooltip("Multiplier applied to gravity while the player is falling (velocity.y < 0). " +
+             "Values above 1 make landing faster and snappier.")]
+    [SerializeField] private float fallGravityMultiplier = 10f;
     [SerializeField] private Transform groundCheck;
     [SerializeField] private float groundDistance = 0.4f;
     [SerializeField] private LayerMask groundMask;
@@ -43,12 +46,7 @@ public class PlayerController : MonoBehaviour
     void Start()
     {
         if (groundCheck == null)
-        {
-            GameObject groundCheckObj = new GameObject("GroundCheck");
-            groundCheckObj.transform.SetParent(transform);
-            groundCheckObj.transform.localPosition = new Vector3(0, -1f, 0);
-            groundCheck = groundCheckObj.transform;
-        }
+            Debug.LogWarning("PlayerController: GroundCheck is not assigned. Assign the GroundCheck child GameObject in the Inspector.");
 
         SetupInputCallbacks();
     }
@@ -149,8 +147,12 @@ public class PlayerController : MonoBehaviour
 
     private void ApplyGravity()
     {
-        velocity.y += gravity * Time.deltaTime;
-        controller.Move(velocity * Time.deltaTime);
+        // Apply stronger gravity multiplier while falling so the arc feels snappy
+        // and the player doesn't float down slowly after the peak
+        float gravityScale = velocity.y < 0f ? fallGravityMultiplier : 1f;
+        velocity.y += gravity * gravityScale * Time.deltaTime;
+
+        controller.Move(new Vector3(0f, velocity.y, 0f) * Time.deltaTime);
     }
 
     private void HandleMovement()
@@ -229,6 +231,23 @@ public class PlayerController : MonoBehaviour
                 Debug.LogWarning("PauseMenuController not found! Make sure there's a GameObject with PauseMenuController in the scene.");
             }
         }
+    }
+
+    // ── Mobile input API — called by MobileTouchController ────────────
+
+    /// <summary>Sets movement direction from the virtual joystick each frame.</summary>
+    public void SetMobileMove(Vector2 input) => moveInput = input;
+
+    /// <summary>Sets sprint state from the mobile sprint button.</summary>
+    public void SetMobileSprint(bool sprinting) => isSprinting = sprinting;
+
+    /// <summary>Triggers a jump from the mobile jump button.</summary>
+    public void TriggerMobileJump() => jumpInput = true;
+
+    /// <summary>Called by StompDetector to bounce the player upward after killing an enemy.</summary>
+    public void ApplyStompBounce(float force)
+    {
+        velocity.y = Mathf.Sqrt(force * -2f * gravity);
     }
 
     void OnDrawGizmosSelected()

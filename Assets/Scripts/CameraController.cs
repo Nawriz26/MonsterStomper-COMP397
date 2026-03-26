@@ -20,15 +20,17 @@ public class CameraController : MonoBehaviour
     private float currentX = 0f;
     private float currentY = 20f;
 
+    // Set by MobileTouchController each frame when touch look is active
+    private Vector2 externalLookDelta = Vector2.zero;
+    private bool hasExternalLookInput = false;
+
     void Start()
     {
         if (target == null)
         {
             GameObject player = GameObject.FindGameObjectWithTag("Player");
             if (player != null)
-            {
                 target = player.transform;
-            }
         }
     }
 
@@ -39,10 +41,12 @@ public class CameraController : MonoBehaviour
         if (GameManager.Instance != null && GameManager.Instance.isPaused)
             return;
 
-        if (enableMouseLook)
-        {
+        if (hasExternalLookInput)
+            HandleExternalLook();
+        else if (enableMouseLook)
             HandleMouseLook();
-        }
+
+        hasExternalLookInput = false;
 
         UpdateCameraPosition();
     }
@@ -53,9 +57,15 @@ public class CameraController : MonoBehaviour
         if (mouse == null) return;
 
         Vector2 mouseDelta = mouse.delta.ReadValue();
-
         currentX += mouseDelta.x * mouseSensitivity;
         currentY -= mouseDelta.y * mouseSensitivity;
+        currentY = Mathf.Clamp(currentY, minVerticalAngle, maxVerticalAngle);
+    }
+
+    private void HandleExternalLook()
+    {
+        currentX += externalLookDelta.x;
+        currentY -= externalLookDelta.y;
         currentY = Mathf.Clamp(currentY, minVerticalAngle, maxVerticalAngle);
     }
 
@@ -67,6 +77,16 @@ public class CameraController : MonoBehaviour
 
         transform.position = Vector3.Lerp(transform.position, desiredPosition, followSpeed * Time.deltaTime);
         transform.LookAt(target.position + Vector3.up * height * 0.5f);
+    }
+
+    /// <summary>
+    /// Called by MobileTouchController each frame to drive camera rotation from touch swipe.
+    /// sensitivity and invertY are already applied by the caller.
+    /// </summary>
+    public void AddLookDelta(Vector2 delta)
+    {
+        externalLookDelta = delta;
+        hasExternalLookInput = true;
     }
 
     public void SetTarget(Transform newTarget)

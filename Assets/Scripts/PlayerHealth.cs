@@ -27,9 +27,9 @@ public class PlayerHealth : MonoBehaviour
         OnHealthChanged?.Invoke(currentHealth, maxHealth);
 
         if (AudioManager.Instance != null)
-        {
             AudioManager.Instance.PlayPlayerHit();
-        }
+
+        HapticManager.Instance?.OnPlayerHit();
 
         if (currentHealth <= 0)
         {

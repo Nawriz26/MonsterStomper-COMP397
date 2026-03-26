@@ -1,0 +1,10 @@
+# ninja log v5
+651	4229	7962106050833146	GameActivity/CMakeFiles/game.dir/UGAInputKeyEvent.cpp.o	c108240bfcd43cfd
+671	4257	7962106050950099	GameActivity/CMakeFiles/game.dir/UGAEntry.cpp.o	417395131233ecbd
+162	4267	7962106051179830	GameActivity/CMakeFiles/game.dir/UGAConfiguration.cpp.o	305303f901652440
+696	4286	7962106051384513	GameActivity/CMakeFiles/game.dir/UGAInputMotionEvent.cpp.o	c075388dd97beff1
+332	4343	7962106052022520	GameActivity/CMakeFiles/game.dir/UGADebug.cpp.o	8965187ca39f1047
+716	4582	7962106054498297	GameActivity/CMakeFiles/game.dir/UGASoftKeyboard.cpp.o	dd817bc734f81e18
+486	4735	7962106055944748	GameActivity/CMakeFiles/game.dir/UGAInput.cpp.o	b9169ea51cdd8bad
+1	5038	7962106058949786	GameActivity/CMakeFiles/game.dir/UGAApplication.cpp.o	8f8595a8e86c29de
+5038	5441	7962106063092763	D:/Unity_Projects/MonsterStomper-COMP397/Library/Bee/Android/Prj/IL2CPP/Gradle/unityLibrary/build/intermediates/cxx/RelWithDebInfo/1p3g5y3u/obj/arm64-v8a/libgame.so	9e60e211cae87130

@@ -1,0 +1,2 @@
+D:\Unity_Projects\MonsterStomper-COMP397\Library\Bee\Android\Prj\IL2CPP\Gradle\unityLibrary\src\main\cpp\CMakeLists.txt
+D:\Unity_Projects\MonsterStomper-COMP397\Library\Bee\Android\Prj\IL2CPP\Gradle\unityLibrary\src\main\cpp\GameActivity\CMakeLists.txt
