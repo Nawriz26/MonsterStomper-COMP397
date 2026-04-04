@@ -1,10 +1,10 @@
 using UnityEngine;
 
-public class BasicEnemyFactory : EnemyFactory
+public class BasicEnemyFactory : MonoBehaviour, IGameObjectFactory
 {
     [SerializeField] private GameObject enemyPrefab;
 
-    public override GameObject CreateEnemy(Vector3 position, Quaternion rotation)
+    public GameObject Create(Vector3 position, Quaternion rotation)
     {
         return Instantiate(enemyPrefab, position, rotation);
     }

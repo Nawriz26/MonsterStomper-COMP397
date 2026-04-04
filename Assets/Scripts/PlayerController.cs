@@ -157,15 +157,13 @@ public class PlayerController : MonoBehaviour
 
     private void HandleMovement()
     {
-        if (moveInput.magnitude < 0.01f) return;
-
         Vector3 move = new Vector3(moveInput.x, 0, moveInput.y);
-        
-        float currentSpeed = isSprinting ? sprintSpeed : moveSpeed;
-        controller.Move(move * currentSpeed * Time.deltaTime);
 
-        if (move != Vector3.zero)
+        if (move.sqrMagnitude > 0.001f)
         {
+            float currentSpeed = isSprinting ? sprintSpeed : moveSpeed;
+            controller.Move(move * currentSpeed * Time.deltaTime);
+
             Quaternion targetRotation = Quaternion.LookRotation(move);
             transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
         }
