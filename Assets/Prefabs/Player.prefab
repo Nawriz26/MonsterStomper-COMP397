@@ -162,6 +162,7 @@ MonoBehaviour:
   rotationSpeed: 10
   jumpForce: 5
   gravity: -9.81
+  fallGravityMultiplier: 10
   groundCheck: {fileID: 0}
   groundDistance: 0.4
   groundMask:
@@ -212,16 +213,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 73d72f5298e2c074da30be97e34a25a1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerWeapon
-  projectilePrefab: {fileID: 0}
-  firePoint: {fileID: 0}
-  fireRate: 0.5
+  projectileFactory: {fileID: 0}
+  projectilePrefab: {fileID: 168368601213692848, guid: c1c96940c2f11c14d8c0ad923ded38e8, type: 3}
   projectileSpeed: 20
   damage: 25
-  useRaycast: 0
-  raycastRange: 100
-  hitLayers:
+  firePoint: {fileID: 0}
+  fireRate: 0.5
+  aimRange: 100
+  aimLayers:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 4294967295
 --- !u!114 &240648118598765130
 MonoBehaviour:
   m_ObjectHideFlags: 0
