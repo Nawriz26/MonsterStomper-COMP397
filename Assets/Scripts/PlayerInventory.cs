@@ -9,20 +9,18 @@ public class PlayerInventory : MonoBehaviour
 
     private List<InventoryItem> items = new List<InventoryItem>();
 
-    // ADD THIS (Observer Pattern)
     public Action OnInventoryChanged;
 
-   [SerializeField] private Sprite coinIcon;
+    [SerializeField] private Sprite coinIcon;
 
     void Start()
     {
-        AddItem(new InventoryItem("Coin", coinIcon, "", 5));
+        AddItem(new InventoryItem("Coin", coinIcon, "Collectible currency.", 5));
     }
 
-    // ADD ITEM (with stacking)
+    /// <summary>Adds an item to the inventory, stacking if it already exists.</summary>
     public bool AddItem(InventoryItem item)
     {
-        // Check if item already exists → STACK
         InventoryItem existing = items.Find(i => i.itemName == item.itemName);
 
         if (existing != null)
@@ -41,44 +39,65 @@ public class PlayerInventory : MonoBehaviour
         }
 
         Debug.Log($"Added {item.itemName} x{item.quantity}");
-
-        OnInventoryChanged?.Invoke(); // IMPORTANT
-
+        OnInventoryChanged?.Invoke();
         return true;
+    }
+
+    /// <summary>Removes one item by name and triggers its use effect.</summary>
+    public bool UseItem(string itemName)
+    {
+        InventoryItem item = items.Find(i => i.itemName == itemName);
+        if (item == null) return false;
+
+        ApplyItemEffect(item);
+
+        item.quantity--;
+        if (item.quantity <= 0)
+            items.Remove(item);
+
+        OnInventoryChanged?.Invoke();
+        return true;
+    }
+
+    /// <summary>Applies the gameplay effect of a consumed item.</summary>
+    private void ApplyItemEffect(InventoryItem item)
+    {
+        switch (item.itemName)
+        {
+            case "HealthPotion":
+                PlayerHealth health = GetComponent<PlayerHealth>();
+                if (health != null)
+                    health.Heal(30);
+                break;
+
+            default:
+                Debug.Log($"Used: {item.itemName} — no effect defined.");
+                break;
+        }
     }
 
     public bool RemoveItem(InventoryItem item)
     {
         bool removed = items.Remove(item);
-
         if (removed)
             OnInventoryChanged?.Invoke();
-
         return removed;
     }
 
     public bool HasItem(string itemName)
-    {
-        return items.Exists(i => i.itemName == itemName);
-    }
+        => items.Exists(i => i.itemName == itemName);
 
     public int GetItemCount()
-    {
-        return items.Count;
-    }
+        => items.Count;
 
-    // KEEP THIS (UI will use it)
     public List<InventoryItem> GetAllItems()
-    {
-        return items;
-    }
+        => items;
 
     public void ClearInventory()
     {
         items.Clear();
         OnInventoryChanged?.Invoke();
     }
-    
 }
 
 [System.Serializable]
@@ -87,13 +106,13 @@ public class InventoryItem
     public string itemName;
     public Sprite icon;
     public string description;
-    public int quantity = 1;
+    public int    quantity = 1;
 
     public InventoryItem(string name, Sprite itemIcon = null, string desc = "", int qty = 1)
     {
-        itemName = name;
-        icon = itemIcon;
+        itemName    = name;
+        icon        = itemIcon;
         description = desc;
-        quantity = qty;
+        quantity    = qty;
     }
 }

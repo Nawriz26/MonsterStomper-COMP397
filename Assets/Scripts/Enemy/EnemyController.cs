@@ -6,38 +6,41 @@ public class EnemyController : MonoBehaviour
 {
     [Header("Detection Settings")]
     [SerializeField] private float detectionRadius = 15f;
-    [SerializeField] private float attackRange = 2f;
-    [SerializeField] private float fieldOfView = 120f;
+    [SerializeField] private float hearingRadius   = 8f;    // Sensing Suite: hearing
+    [SerializeField] private float attackRange     = 2f;
+    [SerializeField] private float fieldOfView     = 120f;
     [SerializeField] private LayerMask obstacleLayers;
 
     [Header("Combat Settings")]
     [SerializeField] private float attackCooldown = 2f;
-    [SerializeField] private int attackDamage = 10;
+    [SerializeField] private int   attackDamage   = 10;
 
     [Header("Movement Settings")]
-    [SerializeField] private float patrolSpeed = 2f;
-    [SerializeField] private float chaseSpeed = 4f;
+    [SerializeField] private float patrolSpeed    = 2f;
+    [SerializeField] private float chaseSpeed     = 4f;
+    [SerializeField] private float fleeSpeed      = 5f;
+    [SerializeField] private float fleeHealthPct  = 0.2f;   // Flee below 20 % HP
+    [SerializeField] private float fleeDistance   = 15f;
     [SerializeField] private Transform[] patrolPoints;
     [SerializeField] private float waypointReachDistance = 1f;
 
     [Header("Wander Settings (used when no patrol points assigned)")]
-    [SerializeField] private float wanderRadius = 12f;
+    [SerializeField] private float wanderRadius   = 12f;
     [SerializeField] private float wanderInterval = 3f;
 
-    private NavMeshAgent agent;
-    private Transform player;
-    private EnemyHealth enemyHealth;
+    private NavMeshAgent  agent;
+    private Transform     player;
+    private EnemyHealth   enemyHealth;
 
-    private EnemyState currentState = EnemyState.Patrol;
-
-    private int currentPatrolIndex = 0;
-    private float nextAttackTime = 0f;
-    private float nextWanderTime = 0f;
-    private bool playerDetected = false;
+    private EnemyState currentState    = EnemyState.Patrol;
+    private int        currentPatrolIndex = 0;
+    private float      nextAttackTime  = 0f;
+    private float      nextWanderTime  = 0f;
+    private bool       playerDetected  = false;
 
     void Awake()
     {
-        agent = GetComponent<NavMeshAgent>();
+        agent       = GetComponent<NavMeshAgent>();
         enemyHealth = GetComponent<EnemyHealth>();
     }
 
@@ -52,7 +55,7 @@ public class EnemyController : MonoBehaviour
         if (patrolPoints.Length > 0)
             GoToNextPatrolPoint();
         else
-            PickWanderDestination(); // start wandering immediately
+            PickWanderDestination();
     }
 
     void Update()
@@ -60,15 +63,26 @@ public class EnemyController : MonoBehaviour
         if (enemyHealth != null && enemyHealth.GetCurrentHealth() <= 0)
             return;
 
-        DetectPlayer();
+        // Flee overrides all other states when health is critically low
+        if (ShouldFlee())
+        {
+            currentState = EnemyState.Flee;
+        }
+        else
+        {
+            DetectPlayer();
+        }
 
         switch (currentState)
         {
-            case EnemyState.Patrol: Patrol();  break;
-            case EnemyState.Chase:  Chase();   break;
-            case EnemyState.Attack: Attack();  break;
+            case EnemyState.Patrol: Patrol(); break;
+            case EnemyState.Chase:  Chase();  break;
+            case EnemyState.Attack: Attack(); break;
+            case EnemyState.Flee:   Flee();   break;
         }
     }
+
+    // ── Sensing Suite ─────────────────────────────────────────────────────────
 
     private void DetectPlayer()
     {
@@ -76,23 +90,32 @@ public class EnemyController : MonoBehaviour
 
         float distance = Vector3.Distance(transform.position, player.position);
 
+        // Vision: FOV cone + line-of-sight raycast
+        bool seesPlayer = false;
         if (distance <= detectionRadius)
         {
-            Vector3 dir = (player.position - transform.position).normalized;
-            float angle = Vector3.Angle(transform.forward, dir);
+            Vector3 dir   = (player.position - transform.position).normalized;
+            float   angle = Vector3.Angle(transform.forward, dir);
 
             if (angle <= fieldOfView * 0.5f && HasLineOfSight(player.position))
-            {
-                playerDetected = true;
-                currentState = distance <= attackRange ? EnemyState.Attack : EnemyState.Chase;
-                return;
-            }
+                seesPlayer = true;
         }
 
+        // Hearing: detects player within hearingRadius regardless of facing direction
+        bool hearsPlayer = distance <= hearingRadius;
+
+        if (seesPlayer || hearsPlayer)
+        {
+            playerDetected = true;
+            currentState   = distance <= attackRange ? EnemyState.Attack : EnemyState.Chase;
+            return;
+        }
+
+        // Lost player — return to patrol
         if (playerDetected && distance > detectionRadius * 1.5f)
         {
             playerDetected = false;
-            currentState = EnemyState.Patrol;
+            currentState   = EnemyState.Patrol;
 
             if (patrolPoints.Length > 0)
                 GoToNextPatrolPoint();
@@ -101,15 +124,23 @@ public class EnemyController : MonoBehaviour
         }
     }
 
+    private bool ShouldFlee()
+    {
+        if (enemyHealth == null) return false;
+        float healthPct = (float)enemyHealth.GetCurrentHealth() / enemyHealth.GetMaxHealth();
+        return healthPct <= fleeHealthPct && playerDetected;
+    }
+
     private bool HasLineOfSight(Vector3 targetPosition)
     {
-        // If obstacleLayers is Nothing, skip the raycast — treat as always visible.
         if (obstacleLayers == 0) return true;
 
         Vector3 direction = targetPosition - transform.position;
         Ray ray = new Ray(transform.position + Vector3.up, direction.normalized);
         return !Physics.Raycast(ray, direction.magnitude, obstacleLayers);
     }
+
+    // ── Steering Behaviours ───────────────────────────────────────────────────
 
     private void Patrol()
     {
@@ -129,8 +160,7 @@ public class EnemyController : MonoBehaviour
     {
         agent.speed = patrolSpeed;
 
-        // Pick a new wander destination when the timer fires or the agent has arrived
-        bool arrived = !agent.pathPending && agent.remainingDistance < waypointReachDistance;
+        bool arrived      = !agent.pathPending && agent.remainingDistance < waypointReachDistance;
         bool timerElapsed = Time.time >= nextWanderTime;
 
         if (arrived || timerElapsed)
@@ -141,7 +171,6 @@ public class EnemyController : MonoBehaviour
     {
         nextWanderTime = Time.time + wanderInterval;
 
-        // Sample a random point on the NavMesh within wanderRadius
         Vector3 randomDirection = Random.insideUnitSphere * wanderRadius;
         randomDirection += transform.position;
 
@@ -160,7 +189,7 @@ public class EnemyController : MonoBehaviour
     {
         if (player == null) return;
 
-        agent.speed = chaseSpeed;
+        agent.speed     = chaseSpeed;
         agent.isStopped = false;
         agent.SetDestination(player.position);
 
@@ -182,7 +211,7 @@ public class EnemyController : MonoBehaviour
 
         if (Vector3.Distance(transform.position, player.position) > attackRange)
         {
-            currentState = EnemyState.Chase;
+            currentState    = EnemyState.Chase;
             agent.isStopped = false;
             return;
         }
@@ -191,6 +220,29 @@ public class EnemyController : MonoBehaviour
         {
             PerformAttack();
             nextAttackTime = Time.time + attackCooldown;
+        }
+    }
+
+    /// <summary>Steering: moves away from the player at fleeSpeed.</summary>
+    private void Flee()
+    {
+        if (player == null) return;
+
+        agent.speed     = fleeSpeed;
+        agent.isStopped = false;
+
+        Vector3 fleeDir         = (transform.position - player.position).normalized;
+        Vector3 fleeDestination = transform.position + fleeDir * fleeDistance;
+
+        if (NavMesh.SamplePosition(fleeDestination, out NavMeshHit hit, fleeDistance, NavMesh.AllAreas))
+            agent.SetDestination(hit.position);
+
+        // Stop fleeing if health is recovered (e.g., future heal mechanic) or player is far away
+        float distance = Vector3.Distance(transform.position, player.position);
+        if (distance > detectionRadius * 1.5f)
+        {
+            playerDetected = false;
+            currentState   = EnemyState.Patrol;
         }
     }
 
@@ -212,6 +264,7 @@ public class EnemyController : MonoBehaviour
     {
         patrolSpeed     = moveSpd * 0.65f;
         chaseSpeed      = moveSpd;
+        fleeSpeed       = moveSpd * 1.25f;
         detectionRadius = detectRadius;
         fieldOfView     = fov;
         attackRange     = atkRange;
@@ -224,10 +277,13 @@ public class EnemyController : MonoBehaviour
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireSphere(transform.position, detectionRadius);
 
+        Gizmos.color = Color.cyan;
+        Gizmos.DrawWireSphere(transform.position, hearingRadius);
+
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, attackRange);
 
-        Gizmos.color = Color.cyan;
+        Gizmos.color = new Color(0.5f, 0f, 0.5f);
         Gizmos.DrawWireSphere(transform.position, wanderRadius);
 
         if (player != null && playerDetected)
@@ -242,5 +298,6 @@ public enum EnemyState
 {
     Patrol,
     Chase,
-    Attack
+    Attack,
+    Flee
 }

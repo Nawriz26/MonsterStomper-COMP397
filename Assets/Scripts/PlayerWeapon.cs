@@ -60,27 +60,38 @@ public class PlayerWeapon : MonoBehaviour
     private void FireProjectile()
     {
         // ── Determine aim direction from camera screen centre ─────────────────
-        Vector3 aimPoint = GetAimPoint();
+        Vector3 aimPoint     = GetAimPoint();
         Vector3 aimDirection = (aimPoint - firePoint.position).normalized;
         Quaternion aimRotation = Quaternion.LookRotation(aimDirection);
 
+        // ── 1. Prefer ProjectilePool (Object Pool pattern) ────────────────────
+        if (ProjectilePool.Instance != null)
+        {
+            ProjectilePool.Instance.Get(firePoint.position, aimRotation, damage,
+                                        GetConfigSpeed(), aimDirection);
+            return;
+        }
+
+        // ── 2. Fall back to factory ───────────────────────────────────────────
         if (projectileFactory != null)
         {
             GameObject proj = projectileFactory.Create(firePoint.position, aimRotation);
 
-            // Override velocity to match aim direction (factory sets rotation but
-            // ProjectileFactory.Create already applies forward velocity from the rotation)
             if (proj != null)
             {
                 Rigidbody rb = proj.GetComponent<Rigidbody>();
                 if (rb != null)
-                {
-                    float speed = GetConfigSpeed();
-                    rb.linearVelocity = aimDirection * speed;
-                }
+                    rb.linearVelocity = aimDirection * GetConfigSpeed();
+
+                Projectile ps = proj.GetComponent<Projectile>();
+                if (ps != null)
+                    ps.Initialize(damage);
             }
+            return;
         }
-        else if (projectilePrefab != null)
+
+        // ── 3. Last-resort direct Instantiate ────────────────────────────────
+        if (projectilePrefab != null)
         {
             GameObject proj = Instantiate(projectilePrefab, firePoint.position, aimRotation);
 
@@ -96,7 +107,7 @@ public class PlayerWeapon : MonoBehaviour
         }
         else
         {
-            Debug.LogWarning("PlayerWeapon: assign either a ProjectileFactory or a fallback projectilePrefab.");
+            Debug.LogWarning("PlayerWeapon: assign a ProjectilePool, ProjectileFactory, or projectilePrefab.");
         }
     }
 

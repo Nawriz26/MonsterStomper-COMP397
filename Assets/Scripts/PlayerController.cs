@@ -20,6 +20,7 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private LayerMask groundMask;
 
     private CharacterController controller;
+    private Animator animator;
     private Vector3 velocity;
     private bool isGrounded;
     private bool isSprinting;
@@ -32,23 +33,60 @@ public class PlayerController : MonoBehaviour
     private PlayerInput playerInput;
     private PauseMenuController pauseMenuController;
 
+    // Animator parameter IDs — cached to avoid per-frame string hashing
+    private static readonly int AnimBlend  = Animator.StringToHash("Blend");
+    private static readonly int AnimJump   = Animator.StringToHash("Jump");
+    private static readonly int AnimAttack = Animator.StringToHash("Attack");
+    private static readonly int AnimDeath  = Animator.StringToHash("Death");
+
     void Awake()
     {
-        controller = GetComponent<CharacterController>();
+        controller  = GetComponent<CharacterController>();
         playerHealth = GetComponent<PlayerHealth>();
         playerWeapon = GetComponent<PlayerWeapon>();
-        playerInput = GetComponent<PlayerInput>();
-        
+        playerInput  = GetComponent<PlayerInput>();
+
+        // Animator lives on the Hero_Rock visual child, not on the root
+        animator = GetComponentInChildren<Animator>();
+
         // Find pause menu controller (works even if inactive)
         pauseMenuController = FindObjectOfType<PauseMenuController>(true);
     }
 
     void Start()
     {
+        // Auto-resolve GroundCheck by name so it works even when the
+        // Inspector reference is lost after a scene restore.
         if (groundCheck == null)
-            Debug.LogWarning("PlayerController: GroundCheck is not assigned. Assign the GroundCheck child GameObject in the Inspector.");
+        {
+            Transform found = transform.Find("GroundCheck");
+            if (found != null)
+                groundCheck = found;
+            else
+                Debug.LogWarning("PlayerController: GroundCheck child not found. Add a child GameObject named 'GroundCheck'.");
+        }
+
+        // Subscribe to death event to trigger the Death animation
+        if (playerHealth != null)
+            playerHealth.OnDeath.AddListener(OnPlayerDeath);
 
         SetupInputCallbacks();
+    }
+
+    void OnDestroy()
+    {
+        if (playerHealth != null)
+            playerHealth.OnDeath.RemoveListener(OnPlayerDeath);
+
+        // Unsubscribe input callbacks below
+        UnsubscribeInputCallbacks();
+    }
+
+    /// <summary>Plays the Death animation when the player dies.</summary>
+    private void OnPlayerDeath()
+    {
+        if (animator != null)
+            animator.SetTrigger(AnimDeath);
     }
 
     private void SetupInputCallbacks()
@@ -91,7 +129,7 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    void OnDestroy()
+    private void UnsubscribeInputCallbacks()
     {
         if (playerInput == null) return;
 
@@ -102,26 +140,20 @@ public class PlayerController : MonoBehaviour
         if (moveAction != null)
         {
             moveAction.performed -= OnMove;
-            moveAction.canceled -= OnMove;
+            moveAction.canceled  -= OnMove;
         }
 
         var jumpAction = gameplayMap.FindAction("Jump");
         if (jumpAction != null)
-        {
             jumpAction.performed -= OnJump;
-        }
 
         var fireAction = gameplayMap.FindAction("Fire");
         if (fireAction != null)
-        {
             fireAction.performed -= OnFire;
-        }
 
         var pauseAction = gameplayMap.FindAction("Pause");
         if (pauseAction != null)
-        {
             pauseAction.performed -= OnPause;
-        }
     }
 
     void Update()
@@ -167,6 +199,13 @@ public class PlayerController : MonoBehaviour
             Quaternion targetRotation = Quaternion.LookRotation(move);
             transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
         }
+
+        // Drive the Idle↔Run blend tree: 0 = idle, 1 = running
+        if (animator != null)
+        {
+            float blendValue = move.sqrMagnitude > 0.001f ? 1f : 0f;
+            animator.SetFloat(AnimBlend, blendValue, 0.1f, Time.deltaTime);
+        }
     }
 
     private void HandleJump()
@@ -174,14 +213,43 @@ public class PlayerController : MonoBehaviour
         if (jumpInput && isGrounded)
         {
             velocity.y = Mathf.Sqrt(jumpForce * -2f * gravity);
-            
+
+            // Trigger the Jump animation
+            if (animator != null)
+                animator.SetTrigger(AnimJump);
+
             if (AudioManager.Instance != null)
-            {
                 AudioManager.Instance.PlayJump();
-            }
-            
+
             jumpInput = false;
         }
+    }
+
+    /// <summary>
+    /// Detects when the player lands on top of an enemy (stomp).
+    /// A stomp is valid when the player is falling (velocity.y &lt; 0)
+    /// and the contact normal points upward — meaning the player hit the top of the enemy.
+    /// </summary>
+    private const float StompMinNormalY = 0.5f;
+    private const float StompBounceForce = 8f;
+    private const int StompDamage = 999;
+
+    void OnControllerColliderHit(ControllerColliderHit hit)
+    {
+        // Only stomp while falling and hitting a surface that faces upward
+        if (velocity.y >= 0f) return;
+        if (hit.normal.y < StompMinNormalY) return;
+
+        EnemyHealth enemy = hit.gameObject.GetComponent<EnemyHealth>();
+        if (enemy == null)
+            enemy = hit.gameObject.GetComponentInParent<EnemyHealth>();
+
+        if (enemy == null) return;
+
+        enemy.TakeDamage(StompDamage);
+
+        // Bounce the player upward so the stomp feels responsive
+        velocity.y = StompBounceForce;
     }
 
     public void OnMove(InputAction.CallbackContext context)
@@ -207,6 +275,10 @@ public class PlayerController : MonoBehaviour
         if (context.performed && playerWeapon != null)
         {
             playerWeapon.Fire();
+
+            // Trigger the Attack animation
+            if (animator != null)
+                animator.SetTrigger(AnimAttack);
         }
     }
 

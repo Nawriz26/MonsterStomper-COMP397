@@ -23,22 +23,28 @@ public class GamePlayUI : MonoBehaviour
 
     private PlayerHealth playerHealth;
 
-    void Start()
+    void Awake()
     {
-        if (inventoryPanel != null)
-            inventoryPanel.SetActive(false);
-
-        // Auto-subscribe to PlayerHealth events
+        // Subscribe in Awake so the listener is registered before
+        // PlayerHealth.Start() fires OnHealthChanged with the initial value.
         GameObject player = GameObject.FindGameObjectWithTag("Player");
         if (player != null)
         {
             playerHealth = player.GetComponent<PlayerHealth>();
             if (playerHealth != null)
-            {
                 playerHealth.OnHealthChanged.AddListener(UpdateHealthBar);
-                UpdateHealthBar(playerHealth.GetCurrentHealth(), playerHealth.GetMaxHealth());
-            }
         }
+    }
+
+    void Start()
+    {
+        if (inventoryPanel != null)
+            inventoryPanel.SetActive(false);
+
+        // Sync the bar to the current health value in case Awake ran
+        // before PlayerHealth initialised currentHealth.
+        if (playerHealth != null)
+            UpdateHealthBar(playerHealth.GetCurrentHealth(), playerHealth.GetMaxHealth());
 
         UpdateUI();
     }
@@ -83,6 +89,12 @@ public class GamePlayUI : MonoBehaviour
             if (AudioManager.Instance != null)
                 AudioManager.Instance.PlayButtonClick();
         }
+    }
+
+    void OnDestroy()
+    {
+        if (playerHealth != null)
+            playerHealth.OnHealthChanged.RemoveListener(UpdateHealthBar);
     }
 
     public void UpdateInventoryCount(int count)

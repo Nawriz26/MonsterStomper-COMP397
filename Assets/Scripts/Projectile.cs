@@ -2,23 +2,33 @@ using UnityEngine;
 
 /// <summary>
 /// Projectile fired by the player.
-/// Damages enemies on contact and destroys itself on any collision.
-/// Ignores the Player layer on spawn so it never bounces back off the shooter.
+/// Supports both legacy Destroy and Object Pool release patterns.
+/// When spawned via ProjectilePool, it returns itself to the pool instead of destroying.
 /// </summary>
 public class Projectile : MonoBehaviour
 {
-    private const int PlayerLayer = 3;  // "Player" layer index
+    private const int PlayerLayer = 3;
+    private const float MaxLifetime = 5f;
 
     private int damage = 25;
+    private ProjectilePool pool;
+    private float spawnTime;
 
-    /// <summary>Sets the damage value and ignores collision with the Player layer.</summary>
-    public void Initialize(int projectileDamage)
+    /// <summary>Initialises damage, layer ignore, and optional pool reference.</summary>
+    public void Initialize(int projectileDamage, ProjectilePool owningPool = null)
     {
-        damage = projectileDamage;
+        damage    = projectileDamage;
+        pool      = owningPool;
+        spawnTime = Time.time;
 
-        // Ignore physics collision with every collider on the Player layer
-        // so the bullet never hits the character that fired it
         Physics.IgnoreLayerCollision(gameObject.layer, PlayerLayer, true);
+    }
+
+    void Update()
+    {
+        // Auto-expire so pooled projectiles that miss are returned after MaxLifetime.
+        if (Time.time - spawnTime >= MaxLifetime)
+            Retire();
     }
 
     void OnCollisionEnter(Collision collision)
@@ -30,6 +40,14 @@ public class Projectile : MonoBehaviour
         if (enemy != null)
             enemy.TakeDamage(damage);
 
-        Destroy(gameObject);
+        Retire();
+    }
+
+    private void Retire()
+    {
+        if (pool != null)
+            pool.Release(this);
+        else
+            Destroy(gameObject);
     }
 }

@@ -41,16 +41,23 @@ public class EnemyHealth : MonoBehaviour
         OnDeath?.Invoke();
 
         if (AudioManager.Instance != null)
-        {
             AudioManager.Instance.PlayEnemyDeath();
-        }
 
         if (GameManager.Instance != null)
-        {
             GameManager.Instance.EnemyDefeated();
-        }
 
-        Destroy(gameObject, 0.5f);
+        // Return to pool if one exists, otherwise fall back to Destroy
+        if (EnemyPool.Instance != null)
+            EnemyPool.Instance.Release(this);
+        else
+            Destroy(gameObject, 0.5f);
+    }
+
+    /// <summary>Resets health to max. Called when an enemy is recycled from the pool.</summary>
+    public void ResetHealth()
+    {
+        currentHealth = maxHealth;
+        OnHealthChanged?.Invoke(currentHealth, maxHealth);
     }
 
     public int GetCurrentHealth()
