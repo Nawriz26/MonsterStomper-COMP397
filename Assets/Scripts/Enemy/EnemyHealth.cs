@@ -44,9 +44,19 @@ public class EnemyHealth : MonoBehaviour
             AudioManager.Instance.PlayEnemyDeath();
 
         if (GameManager.Instance != null)
+        {
             GameManager.Instance.EnemyDefeated();
 
-        // Return to pool if one exists, otherwise fall back to Destroy
+            int kills = GameManager.Instance.enemiesDefeated;
+
+            if (kills == 1)
+                AchievementManager.Instance.Unlock("FIRST_KILL");
+
+            if (kills >= 10)
+                AchievementManager.Instance.Unlock("MONSTER_SLAYER");
+        }
+
+        // Pool / Destroy AFTER logic
         if (EnemyPool.Instance != null)
             EnemyPool.Instance.Release(this);
         else
