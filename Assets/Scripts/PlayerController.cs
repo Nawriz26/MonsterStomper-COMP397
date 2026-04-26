@@ -27,6 +27,7 @@ public class PlayerController : MonoBehaviour
 
     private Vector2 moveInput;
     private bool jumpInput;
+    private bool hasRaisedMovedEvent = false;
 
     private PlayerHealth playerHealth;
     private PlayerWeapon playerWeapon;
@@ -198,6 +199,13 @@ public class PlayerController : MonoBehaviour
 
             Quaternion targetRotation = Quaternion.LookRotation(move);
             transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
+
+            // Raise PlayerMoved once to satisfy the tutorial step
+            if (!hasRaisedMovedEvent)
+            {
+                hasRaisedMovedEvent = true;
+                GameEventBus.Raise(GameEvent.PlayerMoved);
+            }
         }
 
         // Drive the Idle↔Run blend tree: 0 = idle, 1 = running
@@ -220,6 +228,8 @@ public class PlayerController : MonoBehaviour
 
             if (AudioManager.Instance != null)
                 AudioManager.Instance.PlayJump();
+
+            GameEventBus.Raise(GameEvent.PlayerJumped);
 
             jumpInput = false;
         }
@@ -275,6 +285,7 @@ public class PlayerController : MonoBehaviour
         if (context.performed && playerWeapon != null)
         {
             playerWeapon.Fire();
+            GameEventBus.Raise(GameEvent.PlayerAttacked);
 
             // Trigger the Attack animation
             if (animator != null)

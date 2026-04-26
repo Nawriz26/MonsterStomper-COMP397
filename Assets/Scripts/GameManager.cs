@@ -97,12 +97,14 @@ public class GameManager : MonoBehaviour
         isPaused = false;
         PendingLoad = false;
         SetGameState(GameState.Playing);
+        GameEventBus.Raise(GameEvent.GameStarted);
     }
 
     public void GameOver(bool won)
     {
         SetGameState(won ? GameState.Victory : GameState.GameOver);
         isPaused = false;
+        GameEventBus.Raise(won ? GameEvent.Victory : GameEvent.GameOver);
     }
 
     public void PauseGame()

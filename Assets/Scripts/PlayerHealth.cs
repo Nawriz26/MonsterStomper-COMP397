@@ -31,6 +31,8 @@ public class PlayerHealth : MonoBehaviour
 
         HapticManager.Instance?.OnPlayerHit();
 
+        GameEventBus.Raise(GameEvent.PlayerTookDamage, damage);
+
         if (currentHealth <= 0)
         {
             Die();
@@ -57,6 +59,7 @@ public class PlayerHealth : MonoBehaviour
     private void Die()
     {
         OnDeath?.Invoke();
+        GameEventBus.Raise(GameEvent.PlayerDied);
 
         if (GameManager.Instance != null)
         {

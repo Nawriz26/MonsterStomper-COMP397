@@ -41,7 +41,9 @@ public class EnemyHealth : MonoBehaviour
         OnDeath?.Invoke();
 
         if (AudioManager.Instance != null)
+        {
             AudioManager.Instance.PlayEnemyDeath();
+        }
 
         if (GameManager.Instance != null)
         {
@@ -49,18 +51,31 @@ public class EnemyHealth : MonoBehaviour
 
             int kills = GameManager.Instance.enemiesDefeated;
 
-            if (kills == 1)
-                AchievementManager.Instance.Unlock("FIRST_KILL");
+            if (AchievementManager.Instance != null)
+            {
+                if (kills == 1)
+                {
+                    AchievementManager.Instance.Unlock("FIRST_KILL");
+                }
 
-            if (kills >= 10)
-                AchievementManager.Instance.Unlock("MONSTER_SLAYER");
+                if (kills >= 10)
+                {
+                    AchievementManager.Instance.Unlock("MONSTER_SLAYER");
+                }
+            }
         }
 
-        // Pool / Destroy AFTER logic
+        GameEventBus.Raise(GameEvent.EnemyDefeated);
+
+        // Return to pool if one exists, otherwise fall back to Destroy.
         if (EnemyPool.Instance != null)
+        {
             EnemyPool.Instance.Release(this);
+        }
         else
+        {
             Destroy(gameObject, 0.5f);
+        }
     }
 
     /// <summary>Resets health to max. Called when an enemy is recycled from the pool.</summary>

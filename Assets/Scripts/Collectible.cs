@@ -44,15 +44,18 @@ public class Collectible : MonoBehaviour
             {
                 case CollectibleType.Coin:
                     GameManager.Instance.AddCoin();
+                    GameEventBus.Raise(GameEvent.CoinCollected);
                     break;
                 case CollectibleType.Health:
                     PlayerHealth health = player.GetComponent<PlayerHealth>();
                     if (health != null)
                         health.Heal(healAmount);
                     GameManager.Instance.AddScore(scoreValue);
+                    GameEventBus.Raise(GameEvent.HealthPickedUp);
                     break;
                 case CollectibleType.Points:
                     GameManager.Instance.AddScore(scoreValue);
+                    GameEventBus.Raise(GameEvent.CoinCollected);
                     break;
             }
         }
