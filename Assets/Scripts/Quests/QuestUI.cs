@@ -5,8 +5,8 @@ using UnityEngine.UI;
 using TMPro;
 
 /// <summary>
-/// In-game quest panel that shows the current quest title and its steps as checkboxes.
-/// Attach to the Quest Panel GameObject in the HUD Canvas.
+/// In-game quest panel that shows the current quest title and the steps as checkboxes.
+/// Attach to the Quest Panel GameObject in the HUD Canvas
 /// </summary>
 public class QuestUI : MonoBehaviour
 {
